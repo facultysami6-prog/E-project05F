@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlameHouse | Grill & BBQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fire: #FF4500;
+    --ember: #FF6B35;
+    --gold: #FFB347;
+    --smoke: #1A1A1A;
+    --charcoal: #0D0D0D;
+    --ash: #2C2C2C;
+    --cream: #FFF8F0;
+    --text-light: #F5E6D3;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--charcoal);
+    color: var(--text-light);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ========== CURSOR ========== */
+  body { cursor: none; }
+  .cursor {
+    width: 20px; height: 20px;
+    border: 2px solid var(--fire);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9999;
+    transition: transform 0.15s ease, background 0.2s;
+  }
+  .cursor.expand { transform: scale(2.5); background: rgba(255,69,0,0.15); }
+
+  /* ========== LOADER ========== */
+  #loader {
+    position: fixed; inset: 0;
+    background: var(--charcoal);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 9998;
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+  #loader.hidden { opacity: 0; visibility: hidden; }
+  .loader-flame {
+    font-size: 4rem;
+    animation: flicker 0.5s infinite alternate;
+  }
+  .loader-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--fire);
+    margin-top: 1rem;
+    letter-spacing: 0.3em;
+    animation: pulse 1s infinite;
+  }
+  @keyframes flicker { from { opacity: 0.7; transform: scale(1); } to { opacity: 1; transform: scale(1.1) rotate(-3deg); } }
+  @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+  /* ========== NAV ========== */
+  nav {
+    position: fixed; top: 0; width: 100%;
+    padding: 1.2rem 4rem;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 100;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+    backdrop-filter: blur(4px);
+    transition: background 0.4s;
+  }
+  nav.scrolled { background: rgba(10,10,10,0.97); box-shadow: 0 2px 30px rgba(255,69,0,0.2); }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem; font-weight: 900;
+    background: linear-gradient(135deg, var(--fire), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 0.05em;
+  }
+  .logo span { color: var(--cream); -webkit-text-fill-color: var(--cream); }
+  .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+  .nav-links a {
+    color: var(--text-light); text-decoration: none;
+    font-size: 0.9rem; letter-spacing: 0.1em;
+    text-transform: uppercase; font-weight: 500;
+    position: relative; padding-bottom: 4px;
+    transition: color 0.3s;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; bottom: 0; left: 0;
+    width: 0; height: 2px;
+    background: var(--fire);
+    transition: width 0.3s ease;
+  }
+  .nav-links a:hover { color: var(--gold); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-btn {
+    background: var(--fire); color: white;
+    border: none; padding: 0.6rem 1.5rem;
+    border-radius: 30px; font-size: 0.85rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: none; font-weight: 500;
+    transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+  }
+  .nav-btn:hover { background: var(--ember); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,69,0,0.4); }
+
+  /* ========== HERO ========== */
+  .hero {
+    height: 100vh; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 80%, rgba(255,69,0,0.35) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(255,107,53,0.2) 0%, transparent 50%),
+      linear-gradient(180deg, #0D0D0D 0%, #1A0A00 100%);
+  }
+  .hero-bg::before {
+    content: ''; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 60L60 0' stroke='rgba(255,69,0,0.04)' stroke-width='1'/%3E%3C/svg%3E");
+  }
+  .particles { position: absolute; inset: 0; pointer-events: none; }
+  .particle {
+    position: absolute; width: 3px; height: 3px;
+    background: var(--fire); border-radius: 50%;
+    animation: rise linear infinite;
+    opacity: 0;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.3; }
+    100% { transform: translateY(-120vh) translateX(var(--drift)); opacity: 0; }
+  }
+  .hero-content {
+    position: relative; text-align: center; z-index: 2;
+    animation: heroIn 1.2s ease forwards;
+  }
+  @keyframes heroIn {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero-eyebrow {
+    font-size: 0.8rem; letter-spacing: 0.4em;
+    text-transform: uppercase; color: var(--fire);
+    margin-bottom: 1.2rem; font-weight: 500;
+    display: flex; align-items: center; justify-content: center; gap: 1rem;
+  }
+  .hero-eyebrow::before, .hero-eyebrow::after {
+    content: ''; flex: 1; max-width: 60px; height: 1px; background: var(--fire); opacity: 0.5;
+  }
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3.5rem, 9vw, 7rem);
+    font-weight: 900; line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+  .hero-title .line1 { display: block; color: var(--cream); }
+  .hero-title .line2 {
+    display: block;
+    background: linear-gradient(135deg, var(--fire) 0%, var(--gold) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 1.05rem; color: rgba(245,230,211,0.65);
+    max-width: 480px; margin: 0 auto 2.5rem;
+    line-height: 1.7; font-weight: 300;
+  }
+  .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--fire), var(--ember));
+    color: white; border: none; padding: 0.9rem 2.2rem;
+    border-radius: 50px; font-size: 0.9rem; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: none; text-decoration: none;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 20px rgba(255,69,0,0.4);
+  }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 35px rgba(255,69,0,0.5); }
+  .btn-outline {
+    background: transparent; color: var(--cream);
+    border: 1px solid rgba(255,255,255,0.25); padding: 0.9rem 2.2rem;
+    border-radius: 50px; font-size: 0.9rem; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: none; text-decoration: none;
+    transition: border-color 0.3s, color 0.3s, transform 0.3s;
+  }
+  .btn-outline:hover { border-color: var(--fire); color: var(--fire); transform: translateY(-3px); }
+  .scroll-indicator {
+    position: absolute; bottom: 2rem; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    color: rgba(255,255,255,0.3); font-size: 0.7rem; letter-spacing: 0.2em;
+    animation: bounce 2s infinite;
+  }
+  .scroll-indicator .line { width: 1px; height: 40px; background: rgba(255,69,0,0.4); }
+  @keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(8px); } }
+
+  /* ========== SECTION COMMON ========== */
+  section { padding: 6rem 4rem; }
+  .section-header { text-align: center; margin-bottom: 4rem; }
+  .section-tag {
+    font-size: 0.75rem; letter-spacing: 0.4em;
+    text-transform: uppercase; color: var(--fire);
+    margin-bottom: 0.8rem; font-weight: 500;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 700; color: var(--cream);
+    line-height: 1.15;
+  }
+  .section-line {
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, var(--fire), var(--gold));
+    margin: 1.2rem auto 0; border-radius: 2px;
+  }
+
+  /* ========== MARQUEE ========== */
+  .marquee-strip {
+    background: linear-gradient(135deg, var(--fire), var(--ember));
+    padding: 0.9rem 0; overflow: hidden;
+  }
+  .marquee-track {
+    display: flex; gap: 3rem; width: max-content;
+    animation: marquee 20s linear infinite;
+    white-space: nowrap;
+  }
+  .marquee-track span {
+    font-size: 0.8rem; font-weight: 500;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: white;
+  }
+  .marquee-track .dot { opacity: 0.5; font-size: 1.2rem; line-height: 0.8; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ========== MENU ========== */
+  .menu-section { background: var(--smoke); }
+  .menu-tabs {
+    display: flex; gap: 1rem; justify-content: center;
+    margin-bottom: 3rem; flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.5); padding: 0.6rem 1.6rem;
+    border-radius: 30px; cursor: none; font-size: 0.85rem;
+    font-family: 'DM Sans', sans-serif; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    transition: all 0.3s;
+  }
+  .tab-btn.active, .tab-btn:hover {
+    background: var(--fire); border-color: var(--fire);
+    color: white; box-shadow: 0 4px 20px rgba(255,69,0,0.35);
+  }
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.8rem; max-width: 1200px; margin: 0 auto;
+  }
+  .menu-card {
+    background: var(--ash);
+    border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: transform 0.4s cubic-bezier(.2,.8,.3,1), box-shadow 0.4s, border-color 0.3s;
+    position: relative;
+  }
+  .menu-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,69,0,0.3);
+    border-color: rgba(255,69,0,0.25);
+  }
+  .card-img {
+    position: relative; height: 200px; overflow: hidden;
+  }
+  .card-img img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.6s ease;
+  }
+  .menu-card:hover .card-img img { transform: scale(1.08); }
+  .card-badge {
+    position: absolute; top: 12px; right: 12px;
+    background: var(--fire); color: white;
+    font-size: 0.65rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.3rem 0.7rem; border-radius: 20px;
+  }
+  .card-body { padding: 1.4rem; }
+  .card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem; font-weight: 700;
+    color: var(--cream); margin-bottom: 0.5rem;
+  }
+  .card-desc {
+    font-size: 0.82rem; color: rgba(245,230,211,0.5);
+    line-height: 1.6; margin-bottom: 1rem;
+  }
+  .card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-price {
+    font-size: 1.2rem; font-weight: 700;
+    background: linear-gradient(135deg, var(--fire), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .add-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--fire); border: none; color: white;
+    font-size: 1.3rem; cursor: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .add-btn:hover { transform: rotate(90deg) scale(1.1); box-shadow: 0 4px 15px rgba(255,69,0,0.5); }
+  .menu-category { display: none; }
+  .menu-category.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.8rem; }
+
+  /* ========== SPECIALS ========== */
+  .specials {
+    background: linear-gradient(135deg, #110500, var(--charcoal));
+  }
+  .specials-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 2rem; max-width: 1100px; margin: 0 auto;
+  }
+  .special-card {
+    border-radius: 20px; overflow: hidden;
+    position: relative; min-height: 320px;
+    display: flex; align-items: flex-end;
+    cursor: none;
+  }
+  .special-card img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.6s;
+  }
+  .special-card:hover img { transform: scale(1.05); }
+  .special-card::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%);
+    z-index: 1;
+  }
+  .special-info {
+    position: relative; z-index: 2; padding: 2rem;
+    width: 100%;
+  }
+  .special-tag {
+    font-size: 0.7rem; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--gold);
+    margin-bottom: 0.5rem; font-weight: 600;
+  }
+  .special-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem; font-weight: 700;
+    color: white; margin-bottom: 0.3rem;
+  }
+  .special-price { font-size: 1.1rem; color: var(--fire); font-weight: 600; }
+  .special-card.large { grid-row: span 1; }
+
+  /* ========== ABOUT ========== */
+  .about-section {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 5rem; max-width: 1100px; margin: 0 auto;
+    align-items: center;
+  }
+  .about-img-wrap { position: relative; }
+  .about-img-wrap img {
+    width: 100%; border-radius: 20px;
+    filter: brightness(0.9) contrast(1.1);
+  }
+  .about-img-wrap::before {
+    content: ''; position: absolute;
+    top: -15px; left: -15px; right: 15px; bottom: 15px;
+    border: 2px solid var(--fire); border-radius: 20px;
+    opacity: 0.4; z-index: -1;
+    transition: transform 0.3s;
+  }
+  .about-img-wrap:hover::before { transform: translate(-4px, -4px); }
+  .about-badge {
+    position: absolute; bottom: -20px; right: -20px;
+    background: var(--fire); color: white;
+    width: 100px; height: 100px; border-radius: 50%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    text-align: center; line-height: 1.3;
+    animation: spin-slow 12s linear infinite;
+    box-shadow: 0 8px 25px rgba(255,69,0,0.4);
+  }
+  @keyframes spin-slow { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  .about-text .section-tag { text-align: left; }
+  .about-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem; font-weight: 700; color: var(--cream);
+    line-height: 1.2; margin-bottom: 1.2rem;
+  }
+  .about-desc {
+    color: rgba(245,230,211,0.6); line-height: 1.8;
+    font-size: 0.95rem; margin-bottom: 2rem;
+  }
+  .stats-row { display: flex; gap: 2.5rem; margin-top: 1rem; }
+  .stat-item { text-align: left; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem; font-weight: 900;
+    background: linear-gradient(135deg, var(--fire), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+  .stat-label { font-size: 0.78rem; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.3rem; }
+
+  /* ========== TESTIMONIALS ========== */
+  .testimonials { background: var(--smoke); }
+  .testimonials-grid {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 1.5rem; max-width: 1100px; margin: 0 auto;
+  }
+  .testimonial-card {
+    background: var(--ash); border-radius: 16px;
+    padding: 2rem; border: 1px solid rgba(255,255,255,0.06);
+    position: relative; overflow: hidden;
+    transition: transform 0.4s, box-shadow 0.4s;
+  }
+  .testimonial-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+  }
+  .testimonial-card::before {
+    content: '"'; position: absolute; top: -10px; right: 1.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 8rem; color: rgba(255,69,0,0.08);
+    line-height: 1;
+  }
+  .stars { color: var(--gold); margin-bottom: 1rem; font-size: 0.9rem; letter-spacing: 2px; }
+  .t-text { font-size: 0.88rem; color: rgba(245,230,211,0.65); line-height: 1.75; margin-bottom: 1.2rem; }
+  .t-author { display: flex; align-items: center; gap: 0.8rem; }
+  .t-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--fire), var(--gold));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .t-name { font-size: 0.9rem; font-weight: 600; color: var(--cream); }
+  .t-loc { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
+
+  /* ========== RESERVATION ========== */
+  .reservation {
+    background: 
+      radial-gradient(ellipse at 50% 50%, rgba(255,69,0,0.12) 0%, transparent 60%),
+      var(--charcoal);
+    text-align: center;
+  }
+  .reservation-form {
+    display: grid; grid-template-columns: repeat(4,1fr) auto;
+    gap: 1rem; max-width: 900px; margin: 2.5rem auto 0;
+    align-items: end;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group label { font-size: 0.72rem; color: rgba(255,255,255,0.4); letter-spacing: 0.15em; text-transform: uppercase; }
+  .form-group input, .form-group select {
+    background: var(--ash); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--cream); padding: 0.8rem 1rem;
+    border-radius: 10px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; outline: none;
+    transition: border-color 0.3s;
+    cursor: none;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--fire); }
+  .form-group select option { background: var(--ash); }
+  .reserve-btn {
+    background: linear-gradient(135deg, var(--fire), var(--ember));
+    color: white; border: none; padding: 0.85rem 1.8rem;
+    border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: none; white-space: nowrap;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 20px rgba(255,69,0,0.35);
+  }
+  .reserve-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,69,0,0.5); }
+
+  /* ========== FOOTER ========== */
+  footer {
+    background: #080808; padding: 4rem 4rem 2rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .footer-grid {
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem; margin-bottom: 3rem;
+  }
+  .footer-brand .logo { display: block; margin-bottom: 1rem; font-size: 2rem; }
+  .footer-desc { font-size: 0.85rem; color: rgba(255,255,255,0.35); line-height: 1.8; }
+  .footer-socials { display: flex; gap: 0.8rem; margin-top: 1.5rem; }
+  .social-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+  }
+  .social-icon:hover { background: var(--fire); color: white; border-color: var(--fire); }
+  .footer-col h4 {
+    font-size: 0.8rem; font-weight: 600; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--cream);
+    margin-bottom: 1.2rem;
+  }
+  .footer-col ul { list-style: none; }
+  .footer-col ul li { margin-bottom: 0.6rem; }
+  .footer-col ul li a {
+    font-size: 0.85rem; color: rgba(255,255,255,0.35);
+    text-decoration: none; transition: color 0.3s;
+  }
+  .footer-col ul li a:hover { color: var(--fire); }
+  .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer-bottom p { font-size: 0.78rem; color: rgba(255,255,255,0.2); }
+
+  /* ========== SCROLL ANIMATIONS ========== */
+  .reveal {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-left {
+    opacity: 0; transform: translateX(-40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal-left.visible { opacity: 1; transform: translateX(0); }
+  .reveal-right {
+    opacity: 0; transform: translateX(40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+  /* ========== NOTIFICATION ========== */
+  .notif {
+    position: fixed; bottom: 2rem; right: 2rem;
+    background: var(--ash); border: 1px solid rgba(255,69,0,0.3);
+    border-radius: 12px; padding: 1rem 1.4rem;
+    display: flex; align-items: center; gap: 0.8rem;
+    z-index: 500; font-size: 0.88rem;
+    transform: translateY(100px); opacity: 0;
+    transition: transform 0.4s, opacity 0.4s;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+  .notif.show { transform: translateY(0); opacity: 1; }
+  .notif-icon { font-size: 1.2rem; }
+
+  /* ========== RESPONSIVE ========== */
+  @media(max-width: 900px) {
+    nav { padding: 1rem 2rem; }
+    .nav-links { display: none; }
+    section { padding: 4rem 2rem; }
+    .specials-grid { grid-template-columns: 1fr; }
+    .about-section { grid-template-columns: 1fr; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .reservation-form { grid-template-columns: 1fr 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div class="cursor" id="cursor"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-flame">🔥</div>
+  <div class="loader-text">FlameHouse</div>
+</div>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="logo">Flame<span>House</span></div>
+  <ul class="nav-links">
+    <li><a href="#menu">Menu</a></li>
+    <li><a href="#specials">Specials</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#reserve">Reserve</a></li>
+  </ul>
+  <button class="nav-btn">Order Now</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="particles" id="particles"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">🔥 Karachi's Finest Grill & BBQ</div>
+    <h1 class="hero-title">
+      <span class="line1">Where Fire Meets</span>
+      <span class="line2">Flavor</span>
+    </h1>
+    <p class="hero-sub">Experience the art of BBQ perfection — slow-smoked meats, blazing grills, and fast food classics crafted with passion.</p>
+    <div class="hero-btns">
+      <a href="#menu" class="btn-primary">Explore Menu</a>
+      <a href="#reserve" class="btn-outline">Reserve Table</a>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="line"></div>
+    <span>SCROLL</span>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-strip">
+  <div class="marquee-track">
+    <span>🍔 Smash Burgers</span><span class="dot">•</span>
+    <span>🔥 BBQ Ribs</span><span class="dot">•</span>
+    <span>🍗 Charcoal Chicken</span><span class="dot">•</span>
+    <span>🌯 Shawarma</span><span class="dot">•</span>
+    <span>🥩 Seekh Kabab</span><span class="dot">•</span>
+    <span>🍟 Loaded Fries</span><span class="dot">•</span>
+    <span>🫕 Bihari Boti</span><span class="dot">•</span>
+    <span>🍔 Smash Burgers</span><span class="dot">•</span>
+    <span>🔥 BBQ Ribs</span><span class="dot">•</span>
+    <span>🍗 Charcoal Chicken</span><span class="dot">•</span>
+    <span>🌯 Shawarma</span><span class="dot">•</span>
+    <span>🥩 Seekh Kabab</span><span class="dot">•</span>
+    <span>🍟 Loaded Fries</span><span class="dot">•</span>
+    <span>🫕 Bihari Boti</span><span class="dot">•</span>
+  </div>
+</div>
+
+<!-- MENU -->
+<section class="menu-section" id="menu">
+  <div class="section-header reveal">
+    <div class="section-tag">🍽️ Our Menu</div>
+    <h2 class="section-title">Crafted with Fire & Passion</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="menu-tabs reveal">
+    <button class="tab-btn active" onclick="switchTab('fastfood', this)">Fast Food</button>
+    <button class="tab-btn" onclick="switchTab('bbq', this)">BBQ & Grill</button>
+    <button class="tab-btn" onclick="switchTab('beverages', this)">Beverages</button>
+  </div>
+
+  <div id="fastfood" class="menu-category active">
+    <!-- Fast Food Items -->
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop" alt="Classic Smash Burger">
+        <span class="card-badge">🔥 Bestseller</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Classic Smash Burger</div>
+        <div class="card-desc">Double smash patty, cheddar cheese, caramelized onions, secret sauce on brioche bun.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 750</span>
+          <button class="add-btn" onclick="addToCart('Classic Smash Burger')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1561758033-d89a9ad46330?w=400&h=300&fit=crop" alt="Crispy Fried Chicken">
+        <span class="card-badge">🌶️ Spicy</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Crispy Zinger</div>
+        <div class="card-desc">Buttermilk fried chicken, jalapeño mayo, pickles, lettuce in a toasted sesame bun.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 650</span>
+          <button class="add-btn" onclick="addToCart('Crispy Zinger')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop" alt="Loaded Fries">
+        <span class="card-badge">🧀 New</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Loaded Cheese Fries</div>
+        <div class="card-desc">Crispy fries smothered in nacho cheese, jalapeños, sour cream & crispy bits.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 480</span>
+          <button class="add-btn" onclick="addToCart('Loaded Fries')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=300&fit=crop" alt="Shawarma">
+        <span class="card-badge">⭐ Fan Fav</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Ultimate Shawarma</div>
+        <div class="card-desc">Marinated chicken tikka, garlic sauce, pickled veggies wrapped in fresh paratha.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 420</span>
+          <button class="add-btn" onclick="addToCart('Ultimate Shawarma')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1610614820513-1b1ead4c0d1f?w=400&h=300&fit=crop" alt="Chicken Wings">
+      </div>
+      <div class="card-body">
+        <div class="card-name">Fire Wings (6pc)</div>
+        <div class="card-desc">Crispy wings tossed in our signature flame sauce. Served with blue cheese dip.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 590</span>
+          <button class="add-btn" onclick="addToCart('Fire Wings')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1590301157890-4810ed352733?w=400&h=300&fit=crop" alt="Pizza">
+        <span class="card-badge">🍕 Special</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">BBQ Chicken Pizza</div>
+        <div class="card-desc">Thin crust topped with BBQ sauce, grilled chicken, bell peppers & mozzarella.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 990</span>
+          <button class="add-btn" onclick="addToCart('BBQ Pizza')">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bbq" class="menu-category">
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=300&fit=crop" alt="BBQ Ribs">
+        <span class="card-badge">🔥 Signature</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Slow-Smoked Ribs</div>
+        <div class="card-desc">12-hour smoked baby back ribs, glazed with our secret BBQ sauce. Fall-off-the-bone.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 2,200</span>
+          <button class="add-btn" onclick="addToCart('Smoked Ribs')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1529042410759-befb1204b468?w=400&h=300&fit=crop" alt="Seekh Kabab">
+        <span class="card-badge">⭐ Classic</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Seekh Kabab (4pc)</div>
+        <div class="card-desc">Minced beef mixed with spices, herbs, charcoal grilled on skewers. Served with raita.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 780</span>
+          <button class="add-btn" onclick="addToCart('Seekh Kabab')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=400&h=300&fit=crop" alt="Grilled Chicken">
+        <span class="card-badge">🍗 Popular</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Charcoal Half Chicken</div>
+        <div class="card-desc">Marinated overnight in aromatic spices, grilled over live charcoal to perfection.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 1,100</span>
+          <button class="add-btn" onclick="addToCart('Charcoal Chicken')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1585325701956-60dd9c8553bc?w=400&h=300&fit=crop" alt="Boti">
+      </div>
+      <div class="card-body">
+        <div class="card-name">Bihari Boti</div>
+        <div class="card-desc">Tender beef chunks marinated in raw papaya & traditional Bihari spices, skewered & grilled.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 950</span>
+          <button class="add-btn" onclick="addToCart('Bihari Boti')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1558030006-450675393462?w=400&h=300&fit=crop" alt="Mutton Chops">
+        <span class="card-badge">💎 Premium</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Mutton Chops</div>
+        <div class="card-desc">French-cut mutton chops in ginger-garlic marinade, charcoal grilled with mint chutney.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 1,600</span>
+          <button class="add-btn" onclick="addToCart('Mutton Chops')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1606728035253-49e8a23146de?w=400&h=300&fit=crop" alt="Mix Grill">
+        <span class="card-badge">🔥 For 2</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">FlameHouse Mix Grill</div>
+        <div class="card-desc">Platter of seekh kabab, boti, wings & chops. Best shared, impossible to forget.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 2,800</span>
+          <button class="add-btn" onclick="addToCart('Mix Grill')">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="beverages" class="menu-category">
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?w=400&h=300&fit=crop" alt="Milkshake">
+        <span class="card-badge">🥛 Thick</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Monster Milkshake</div>
+        <div class="card-desc">Ultra-thick shakes in Oreo, Nutella, Strawberry, Mango & Chocolate flavors.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 380</span>
+          <button class="add-btn" onclick="addToCart('Milkshake')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=300&fit=crop" alt="Mocktail">
+      </div>
+      <div class="card-body">
+        <div class="card-name">Flame Mocktail</div>
+        <div class="card-desc">House specialty — passion fruit, mango, chili rim & soda. Sweet meets heat.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 290</span>
+          <button class="add-btn" onclick="addToCart('Flame Mocktail')">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-card reveal">
+      <div class="card-img">
+        <img src="https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&h=300&fit=crop" alt="Fresh Juice">
+      </div>
+      <div class="card-body">
+        <div class="card-name">Fresh Squeeze Juice</div>
+        <div class="card-desc">Daily pressed orange, watermelon, pomegranate, and sugarcane. Cold & refreshing.</div>
+        <div class="card-footer">
+          <span class="card-price">Rs. 220</span>
+          <button class="add-btn" onclick="addToCart('Fresh Juice')">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPECIALS -->
+<section class="specials" id="specials">
+  <div class="section-header reveal">
+    <div class="section-tag">⚡ Today's Specials</div>
+    <h2 class="section-title">Don't Miss These</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="specials-grid">
+    <div class="special-card reveal-left">
+      <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=700&h=500&fit=crop" alt="BBQ Special">
+      <div class="special-info">
+        <div class="special-tag">Chef's Pick</div>
+        <div class="special-name">Ultimate BBQ Night</div>
+        <div class="special-price">From Rs. 1,800</div>
+      </div>
+    </div>
+    <div class="special-card reveal-right">
+      <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=700&h=500&fit=crop" alt="Burger Special">
+      <div class="special-info">
+        <div class="special-tag">Weekend Deal</div>
+        <div class="special-name">Double Smash Combo</div>
+        <div class="special-price">Rs. 999 only</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" style="background: var(--charcoal);">
+  <div class="about-section">
+    <div class="about-img-wrap reveal-left">
+      <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=700&fit=crop" alt="Our Restaurant">
+      <div class="about-badge">Est.<br>2018</div>
+    </div>
+    <div class="about-text reveal-right">
+      <div class="section-tag">About FlameHouse</div>
+      <h2 class="about-title">Fired by Passion, Served with Pride</h2>
+      <p class="about-desc">Born in the heart of Karachi, FlameHouse was built on one belief — great food deserves real fire. We combine traditional BBQ techniques with bold fast food flavors to create an unforgettable dining experience for every Karachiite.</p>
+      <p class="about-desc">Every item on our menu is crafted with premium ingredients, slow-smoked meats, and spices passed down through generations. This is where your cravings come to life.</p>
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-num">50+</div>
+          <div class="stat-label">Menu Items</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">10k+</div>
+          <div class="stat-label">Happy Guests</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">6+</div>
+          <div class="stat-label">Years of Fire</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="section-header reveal">
+    <div class="section-tag">💬 Reviews</div>
+    <h2 class="section-title">What Our Guests Say</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="testimonials-grid">
+    <div class="testimonial-card reveal">
+      <div class="stars">★★★★★</div>
+      <p class="t-text">The BBQ ribs here are absolutely unreal. Smoky, tender, fall-off-the-bone — I've never had anything like it in Karachi. FlameHouse is my go-to every weekend now.</p>
+      <div class="t-author">
+        <div class="t-avatar">😍</div>
+        <div>
+          <div class="t-name">Ahmed Raza</div>
+          <div class="t-loc">DHA, Karachi</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card reveal">
+      <div class="stars">★★★★★</div>
+      <p class="t-text">Ordered the smash burger combo last night — honestly the best burger I've had in the city. The charcoal chicken was next level too. Delivery was super fast!</p>
+      <div class="t-author">
+        <div class="t-avatar">🤤</div>
+        <div>
+          <div class="t-name">Sara Malik</div>
+          <div class="t-loc">Clifton, Karachi</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card reveal">
+      <div class="stars">★★★★★</div>
+      <p class="t-text">Came for the seekh kababs and stayed for everything else. The ambiance is fire (literally), staff is warm, and the flavors are absolutely authentic. Highly recommended!</p>
+      <div class="t-author">
+        <div class="t-avatar">🔥</div>
+        <div>
+          <div class="t-name">Usman Tariq</div>
+          <div class="t-loc">Gulshan, Karachi</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESERVATION -->
+<section class="reservation" id="reserve">
+  <div class="section-header reveal">
+    <div class="section-tag">📅 Reservations</div>
+    <h2 class="section-title">Book Your Table</h2>
+    <div class="section-line"></div>
+    <p style="margin-top:1rem; color:rgba(245,230,211,0.5); font-size:0.9rem;">Reserve your spot and we'll have the grill fired up just for you.</p>
+  </div>
+  <div class="reservation-form reveal">
+    <div class="form-group">
+      <label>Your Name</label>
+      <input type="text" placeholder="Enter name">
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date">
+    </div>
+    <div class="form-group">
+      <label>Time</label>
+      <input type="time">
+    </div>
+    <div class="form-group">
+      <label>Guests</label>
+      <select>
+        <option>1 Person</option>
+        <option>2 Persons</option>
+        <option selected>4 Persons</option>
+        <option>6 Persons</option>
+        <option>8+ Persons</option>
+      </select>
+    </div>
+    <button class="reserve-btn" onclick="reserveTable()">Reserve Now →</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo">Flame<span style="-webkit-text-fill-color:var(--cream)">House</span></div>
+      <p class="footer-desc">Karachi's premier BBQ & Fast Food destination. Where every meal is a fiery celebration of flavor.</p>
+      <div class="footer-socials">
+        <a href="#" class="social-icon">📘</a>
+        <a href="#" class="social-icon">📸</a>
+        <a href="#" class="social-icon">🐦</a>
+        <a href="#" class="social-icon">▶️</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Menu</h4>
+      <ul>
+        <li><a href="#">Fast Food</a></li>
+        <li><a href="#">BBQ & Grill</a></li>
+        <li><a href="#">Beverages</a></li>
+        <li><a href="#">Desserts</a></li>
+        <li><a href="#">Family Deals</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Visit Us</h4>
+      <ul>
+        <li><a href="#">DHA Phase 5, Karachi</a></li>
+        <li><a href="#">+92 321 1234567</a></li>
+        <li><a href="#">info@flamehouse.pk</a></li>
+        <li><a href="#">Open 12pm – 2am</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Catering</a></li>
+        <li><a href="#">Franchise</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2024 FlameHouse. All rights reserved.</p>
+    <p>Crafted with 🔥 in Karachi</p>
+  </div>
+</footer>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif">
+  <span class="notif-icon">🛒</span>
+  <span id="notif-text">Item added!</span>
+</div>
+
+<script>
+  // Loader
+  window.addEventListener('load', () => {
+    setTimeout(() => document.getElementById('loader').classList.add('hidden'), 1500);
+  });
+
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX - 10 + 'px';
+    cursor.style.top = e.clientY - 10 + 'px';
+  });
+  document.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('expand'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('expand'));
+  });
+
+  // Navbar scroll
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // Particles
+  const pc = document.getElementById('particles');
+  for(let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.cssText = `
+      left: ${Math.random()*100}%;
+      bottom: ${Math.random()*30}%;
+      --drift: ${(Math.random()-0.5)*200}px;
+      animation-duration: ${3 + Math.random()*5}s;
+      animation-delay: ${Math.random()*5}s;
+      width: ${1 + Math.random()*3}px;
+      height: ${1 + Math.random()*3}px;
+      background: ${Math.random() > 0.5 ? '#FF4500' : '#FFB347'};
+    `;
+    pc.appendChild(p);
+  }
+
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+
+  // Menu tabs
+  function switchTab(id, btn) {
+    document.querySelectorAll('.menu-category').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // Cart notification
+  function addToCart(item) {
+    const notif = document.getElementById('notif');
+    document.getElementById('notif-text').textContent = `"${item}" added to cart! 🎉`;
+    notif.classList.add('show');
+    setTimeout(() => notif.classList.remove('show'), 2800);
+  }
+
+  // Reserve
+  function reserveTable() {
+    const notif = document.getElementById('notif');
+    document.getElementById('notif-text').textContent = '🎉 Table reserved! See you soon.';
+    notif.classList.add('show');
+    setTimeout(() => notif.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>
